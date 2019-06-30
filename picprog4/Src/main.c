@@ -154,28 +154,40 @@ int main(void)
   MX_TIM3_Init();
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
-	HAL_Delay(1000);
-     /**USB GPIO Configuration    
-    PA11     ------> USB_DM
-    PA12     ------> USB_DP 
-		PowerOff USB
-    */
-				*(uint16_t*)(USB_CNTR)=USB_CNTR_FRES;
-				*(uint16_t*)(USB_ISTR)=0;
-				*(uint16_t*)(USB_CNTR)=USB_CNTR_PDWN | USB_CNTR_FRES;
-       // Program Pin 12 USB_DP from Input to Output
-				GPIO_InitTypeDef  GPIO_InitStructure;
-        GPIO_InitStructure.Pin = GPIO_PIN_12;
-        GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
-        GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
-        GPIO_InitStructure.Pull = GPIO_NOPULL;
-        HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-        // Set USB_DP to 0
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
-				HAL_Delay(2000);
-	MX_USB_DEVICE_Init();
-				HAL_Delay(1000);
+
+  HAL_Delay(1000);
+
+  /* BEGIN USB Reset */
+
+  /* PowerOff USB */
+
+  *(uint16_t*)(USB_CNTR)=USB_CNTR_FRES;
+  *(uint16_t*)(USB_ISTR)=0;
+  *(uint16_t*)(USB_CNTR)=USB_CNTR_PDWN | USB_CNTR_FRES;
+
+  /* Program USB Pin DP_Pin from Input to Output */
+
+  GPIO_InitTypeDef  GPIO_InitStructure;
+  GPIO_InitStructure.Pin = DP_Pin;
+  GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStructure.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  /* Set USB_DP to 0 */
+
+  HAL_GPIO_WritePin(GPIOA, DP_Pin, GPIO_PIN_RESET);
+  HAL_Delay(2000);
+
+  /* Restore USB Settings */
+
+  MX_USB_DEVICE_Init();
+  HAL_Delay(1000);
+
+  /* END USB Reset */
+
   picprog_init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -217,7 +229,7 @@ int main(void)
 				send_ack();
 				gpio_input();
 				HAL_Delay(1000);
-				HAL_GPIO_WritePin(MCLR_GPIO_Port, MCLR_Pin, GPIO_PIN_RESET);
+//				HAL_GPIO_WritePin(MCLR_GPIO_Port, MCLR_Pin, GPIO_PIN_RESET);
 				continue;
 		}
 	}
@@ -293,7 +305,7 @@ static void MX_CRC_Init(void)
   hcrc.Instance = CRC;
   hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
   hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
-  hcrc.Init.GeneratingPolynomial = 0x1021;
+  hcrc.Init.GeneratingPolynomial = 4129;
   hcrc.Init.CRCLength = CRC_POLYLENGTH_16B;
   hcrc.Init.InitValue = 0xFFFF;
   hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
@@ -555,7 +567,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, CS_I2C_SPI_Pin|LD4_Pin|LD3_Pin|LD5_Pin 
@@ -602,17 +613,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PD8 PD9 PD10 PD11
-                             PD12 PD13 PD14 PD15
-                             PD0 PD1 PD2 PD3
-                             PD4 PD5 PD6 PD7 */
-    GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11
-                            |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15
-                            |GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                            |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
 
 /* USER CODE BEGIN 4 */

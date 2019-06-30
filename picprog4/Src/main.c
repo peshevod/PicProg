@@ -172,11 +172,11 @@ int main(void)
   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
   GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStructure.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+  HAL_GPIO_Init(DP_GPIO_Port, &GPIO_InitStructure);
 
   /* Set USB_DP to 0 */
 
-  HAL_GPIO_WritePin(GPIOA, DP_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
   HAL_Delay(2000);
 
   /* Restore USB Settings */

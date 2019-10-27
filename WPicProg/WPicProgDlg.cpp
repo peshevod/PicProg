@@ -59,6 +59,10 @@ CWPicProgDlg::CWPicProgDlg(CWnd* pParent /*=nullptr*/)
 	AppPath = NULL;
 	*lastCOM = 0;
 	**files = 0;
+	_tcscpy_s(uid_str[0], _T("0x0000"));
+	_tcscpy_s(uid_str[1], _T("0x0000"));
+	_tcscpy_s(uid_str[2], _T("0x0000"));
+	_tcscpy_s(uid_str[3], _T("0x0000"));
 }
 
 void CWPicProgDlg::DoDataExchange(CDataExchange* pDX)
@@ -70,6 +74,10 @@ void CWPicProgDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST1, m_Messages);
 	DDX_Control(pDX, IDC_PROGRESS1, m_Progress);
 	DDX_Control(pDX, IDC_CHIP_TYPE, m_chiptype);
+	DDX_Control(pDX, IDC_EDIT1, uid[0]);
+	DDX_Control(pDX, IDC_EDIT2, uid[1]);
+	DDX_Control(pDX, IDC_EDIT3, uid[2]);
+    DDX_Control(pDX, IDC_EDIT4, uid[3]);
 }
 
 BEGIN_MESSAGE_MAP(CWPicProgDlg, CDialogEx)
@@ -86,7 +94,11 @@ BEGIN_MESSAGE_MAP(CWPicProgDlg, CDialogEx)
 	ON_BN_CLICKED(IDCANCEL, &CWPicProgDlg::OnBnClickedCancel)
 	ON_CBN_SELCHANGE(IDC_COMBO2, &CWPicProgDlg::OnSelchangeCombo2)
 	ON_BN_CLICKED(IDC_BUTTON2, &CWPicProgDlg::OnClickedButton2)
-//	ON_LBN_SELCHANGE(IDC_LIST1, &CWPicProgDlg::OnSelchangeList1)
+	ON_EN_CHANGE(IDC_EDIT1, &CWPicProgDlg::OnEditChange1)
+	ON_EN_CHANGE(IDC_EDIT2, &CWPicProgDlg::OnEditChange2)
+	ON_EN_CHANGE(IDC_EDIT3, &CWPicProgDlg::OnEditChange3)
+	ON_EN_CHANGE(IDC_EDIT4, &CWPicProgDlg::OnEditChange4)
+	//	ON_LBN_SELCHANGE(IDC_LIST1, &CWPicProgDlg::OnSelchangeList1)
 	ON_MESSAGE(WM_MessageMessage, &CWPicProgDlg::OnMessagemessage)
 	ON_MESSAGE(WM_CHIPTYPE, &CWPicProgDlg::OnChiptype)
 	ON_MESSAGE(WM_PICRANGE, &CWPicProgDlg::OnPicrange)
@@ -129,6 +141,10 @@ BOOL CWPicProgDlg::OnInitDialog()
 	{
 		readpars();
 		FillList();
+		FillEdit(0);
+		FillEdit(1);
+		FillEdit(2);
+		FillEdit(3);
 	}
 
 	m_Messages.ResetContent();
@@ -197,6 +213,13 @@ void CWPicProgDlg::OnClickedButton1()
 	}
 }
 
+void CWPicProgDlg::FillEdit(int edit_num)
+{
+//	uid[edit_num].SetLimitText(6);
+	uid[edit_num].SetWindowTextW(uid_str[edit_num]);
+	uid_err[edit_num] = 0;
+}
+
 int CWPicProgDlg::FillList()
 {
 	m_cbComboBox.ResetContent();
@@ -220,13 +243,13 @@ int CWPicProgDlg::FillList()
 	if (n != CB_ERR) m_cbComboBox.SetCurSel(n);
 
 	return m_cbComboBox.GetCount();
-
 }
 
 
 int CWPicProgDlg::readpars()
 {
 	TCHAR* str;
+	TCHAR* end = NULL;
 	FILE* f = NULL;
 	TCHAR file0[256] = { 0 };
 	m_FileName.ResetContent();
@@ -243,6 +266,16 @@ int CWPicProgDlg::readpars()
 		return -1;
 	}
 	str[_tcslen(str) - 1] = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		if ((str = _fgetts(uid_str[i], 10, f)) == NULL)
+		{
+			fclose(f);
+			return -1;
+		}
+		str[_tcslen(str) - 1] = 0;
+		uid_l[i] = _tcstoul(uid_str[i], &end, 16);
+	}
 	for (int i = 0; i < 10; i++)
 	{
 		if (feof(f))
@@ -283,6 +316,11 @@ int CWPicProgDlg::writepars()
 	if (f == NULL) return -1;
 	if (_fputts(lastCOM, f) < 0) return -1;
 	if (_fputtc(nl, f) < 0) return -1;
+	for (int i = 0; i < 4; i++)
+	{
+		if (_fputts(uid_str[i], f) < 0) return -1;
+		if (_fputtc(nl, f) < 0) return -1;
+	}
 	for (int i = 0; i<m_FileName.GetCount();i++)
 	{
 		m_FileName.GetLBText(i, files[i]);
@@ -351,6 +389,49 @@ void CWPicProgDlg::OnBnClickedCancel()
 	CDialogEx::OnCancel();
 }
 
+void CWPicProgDlg::OnEditChange(int edit_num)
+{
+	CString s;
+	TCHAR* end = NULL; 
+	uid[edit_num].GetWindowTextW(s);
+	int l=s.GetLength();
+	if (s.GetAt(0) == _T('0') && (s.GetAt(1) == 'x' || s.GetAt(1) == 'X'))
+	{
+		uid_err[edit_num] = 0;
+		for (int j = 2; j < l; j++)
+		{
+			if (s.GetAt(j) != '0')
+			{
+				uid_err[edit_num] = 1;
+				break;
+			}
+		}
+		uid_l[edit_num] = _tcstoul(s, &end, 16);
+		if (uid_l[edit_num] > 0x3FFF || (uid_l[edit_num] == 0 && uid_err[edit_num] != 0)) uid_err[edit_num] = -1;
+	}
+	else uid_err[edit_num] = -1;
+}
+
+afx_msg void CWPicProgDlg::OnEditChange1()
+{
+	return OnEditChange(0);
+}
+
+afx_msg void CWPicProgDlg::OnEditChange2()
+{
+	return OnEditChange(1);
+}
+
+afx_msg void CWPicProgDlg::OnEditChange3()
+{
+	return OnEditChange(2);
+}
+
+afx_msg void CWPicProgDlg::OnEditChange4()
+{
+	return OnEditChange(3);
+}
+
 
 void CWPicProgDlg::OnSelchangeCombo2()
 {
@@ -365,6 +446,23 @@ void CWPicProgDlg::OnSelchangeCombo2()
 
 void CWPicProgDlg::OnClickedButton2()
 {
+	if (uid_err[0] == -1 || uid_err[1] == -1 || uid_err[2] == -1 || uid_err[3] == -1)
+	{
+		::MessageBox(NULL, _T("Wrong User ID parameters format"), _T("Error"), MB_OK | MB_ICONERROR);
+		return;
+	}
+	else
+	{
+		CString s;
+		uid[0].GetWindowTextW(s);
+		_tcscpy_s(uid_str[0], s);
+		uid[1].GetWindowTextW(s);
+		_tcscpy_s(uid_str[1], s);
+		uid[2].GetWindowTextW(s);
+		_tcscpy_s(uid_str[2], s);
+		uid[3].GetWindowTextW(s);
+		_tcscpy_s(uid_str[3], s);
+	}
 	m_Messages.ResetContent();
 	m_Messages.RedrawWindow();
 	picprog* p=new picprog(lastCOM, files[0], this->m_hWnd);

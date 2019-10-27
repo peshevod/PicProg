@@ -36,18 +36,23 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	CComboBox m_FileName;
-//	CComCombo m_ComCombo;
 	CComboBox m_cbComboBox;
 	CButton bSelectFile;
-	afx_msg void OnClickedButton1();
+	CListBox m_Messages;
+	CProgressCtrl m_Progress;
+	CEdit uid[4];
 private:
 	TCHAR lastCOM[10];
+	TCHAR uid_str[4][15];
+	unsigned long uid_l[4];
+	int uid_err[4];
 	TCHAR files[10][256];
 	TCHAR* AppPath;
 	int FillList();
 	int readpars();
 	int writepars();
 	int addfile(CString filePath);
+	void FillEdit(int edit_num);
 public:
 //	afx_msg void OnEditchangeCombo1();
 	afx_msg void OnSetfocusCombo1();
@@ -57,10 +62,14 @@ public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
 	afx_msg void OnSelchangeCombo2();
+	afx_msg void OnClickedButton1();
 	afx_msg void OnClickedButton2();
-//	void PutMessage(LPCTSTR message);
-	CListBox m_Messages;
-	CProgressCtrl m_Progress;
+	afx_msg void OnEditChange1();
+	afx_msg void OnEditChange2();
+	afx_msg void OnEditChange3();
+	afx_msg void OnEditChange4();
+	afx_msg void OnEditChange(int edit_num);
+	//	void PutMessage(LPCTSTR message);
 //	afx_msg void OnSelchangeList1();
 protected:
 	afx_msg LRESULT OnMessagemessage(WPARAM wParam, LPARAM lParam);

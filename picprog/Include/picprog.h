@@ -27,7 +27,7 @@ public:
 	class elf *e0;
 	BOOL proc(void);
 	packet* send_cmd(uint8_t cmd, uint16_t addr, uint32_t timeout, uint8_t rep);
-	boolean send_sec(struct sec_merged* section, uint8_t delta, uint32_t timeout, uint8_t rep);
+	boolean send_sec(struct sec_merged* section, uint8_t delta, uint32_t timeout, uint8_t rep, uint8_t erase_flag);
 	void error(int sev, LPCTSTR er);
 	std::queue<packet*> qout,qin;
 	BOOL w;
@@ -35,6 +35,10 @@ public:
 	HWND hwnd;
 	BOOL good;
 	short blocks;
+	void FillUidSec(unsigned long* uid_l0);
+	BOOL readUid(unsigned long* uid_l);
+	sec_merged* uid_sec;
+	uint8_t* uid_data;
 private:
 	void init();
 	std::thread thread_send, thread_recv;

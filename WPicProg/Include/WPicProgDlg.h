@@ -43,7 +43,7 @@ public:
 	CEdit uid[4];
 private:
 	TCHAR lastCOM[10];
-	TCHAR uid_str[4][15];
+	TCHAR uid_str[4][128];
 	unsigned long uid_l[4];
 	int uid_err[4];
 	TCHAR files[10][256];
@@ -52,7 +52,7 @@ private:
 	int readpars();
 	int writepars();
 	int addfile(CString filePath);
-	void FillEdit(int edit_num);
+	void FillEdit(void);
 public:
 //	afx_msg void OnEditchangeCombo1();
 	afx_msg void OnSetfocusCombo1();

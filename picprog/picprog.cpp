@@ -45,6 +45,8 @@ picprog::picprog(int argc, TCHAR** argv)
 	port = new comport(argv[1], this);
 	// Read ELF file
 	e0 = new elf(argv[2], this);
+	uid_data = (uint8_t*)malloc(8);
+	uid_sec = (sec_merged*)malloc(sizeof(sec_merged));
 	this->hwnd = NULL;
 	init();
 }
@@ -55,6 +57,8 @@ picprog::picprog(LPCTSTR comportname, LPCTSTR elffilename, HWND hwnd)
 	good = FALSE;
 	port = new comport(comportname,this);
 	e0 = new elf(elffilename, this);
+	uid_data = (uint8_t*)malloc(8);
+	uid_sec = (sec_merged*)malloc(sizeof(sec_merged));
 	this->hwnd = hwnd;
 	init();
 }
@@ -147,14 +151,14 @@ packet* picprog::send_cmd(uint8_t cmd, uint16_t addr, uint32_t timeout, uint8_t 
 }
 
 
-boolean picprog::send_sec(struct sec_merged* section, uint8_t delta, uint32_t timeout, uint8_t rep)
+boolean picprog::send_sec(struct sec_merged* section, uint8_t delta, uint32_t timeout, uint8_t rep,uint8_t erase_flag)
 {
 	uint16_t n = 0;
 	uint16_t addr = section->addr;
 	while (n < section->size)
 	{
 		uint8_t m = (n + delta < section->size) ? delta : section->size - n;
-		packet* p = new packet(picprog::seq++, WRITE|FLAG_ERASE|FLAG_CHECK, addr + (n >> 1), &(section->merged_data[n]), m);
+		packet* p = new packet(picprog::seq++, WRITE|erase_flag|FLAG_CHECK, addr + (n >> 1), &(section->merged_data[n]), m);
 		if (!send_wait_ack(p, timeout, rep))
 		{
 			u = _T("No ack for ");
@@ -175,12 +179,48 @@ boolean picprog::send_sec(struct sec_merged* section, uint8_t delta, uint32_t ti
 	return true;
 }
 
+void picprog::FillUidSec(unsigned long* uid_l)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		uid_data[2 * i] = (uid_l[i] >> 8) & 0xff;
+		uid_data[2 * i + 1] = uid_l[i] & 0xff;
+	}
+	uid_sec->addr = 0x8000;
+	uid_sec->merged_data = uid_data;
+	uid_sec->size = 8;
+}
 
 BOOL picprog::proc(void)
 {
 	packet* p1=NULL;
 	TCHAR x[200];
 	if ( port->open() == 0 && e0->good) good = TRUE;
+	thread_send = std::thread(&comport::send, this);
+	thread_recv = std::thread(&comport::recv, this);
+	if ((p1 = send_cmd(START, 0, 10 * 1000, 5)) == NULL) return fatal(_T("There were critical errors, code=0x01"));
+	else delete p1;
+	if ((p1 = send_cmd(ERASE_ALL, 0, 10 * 1000, 5)) == NULL) return fatal(_T("There were critical errors, code=0x04"));
+	else delete p1;
+	if (!send_sec(&e0->code_m, 64, 5 * 1000, 5, FLAG_ERASE)) return fatal(_T("There were critical errors writing code, code=0x05"));
+	if (!send_sec(&e0->conf_m, 2, 5 * 1000, 5, FLAG_ERASE)) return fatal(_T("There were critical errors writing conf, code=0x06"));
+	if (e0->data_m.size != 0) if (!send_sec(&e0->data_m, 2, 5 * 1000, 5, FLAG_ERASE)) return fatal(_T("There were critical errors writing data, code=0x07"));
+	if (!send_sec(uid_sec, 2, 5 * 1000, 5, 0)) return fatal(_T("There were critical errors writing uid, code=0x09"));
+	if ((p1 = send_cmd(STOP, 0, 10 * 1000, 5)) == NULL) return fatal(_T("There were critical errors, code=0x08"));
+	else delete p1;
+	good = FALSE;
+	thread_send.join();
+	thread_recv.join();
+	port->close();
+	return TRUE;
+}
+
+
+BOOL picprog::readUid(unsigned long* uid_l)
+{
+	packet* p1 = NULL;
+	TCHAR x[200];
+	if (port->open() == 0 && e0->good) good = TRUE;
 	thread_send = std::thread(&comport::send, this);
 	thread_recv = std::thread(&comport::recv, this);
 	if ((p1 = send_cmd(START, 0, 10 * 1000, 5)) == NULL) return fatal(_T("There were critical errors, code=0x01"));
@@ -192,35 +232,36 @@ BOOL picprog::proc(void)
 		else
 		{
 			TCHAR chip[16] = { _T("Unknown") };
-			uint16_t id=p1->data[0] * 256 + p1->data[1];
+			uint16_t id = p1->data[0] * 256 + p1->data[1];
 			for (int ii = 0; ii < 16; ii++) if (ids[ii] == id) _tcscpy_s(chip, chips[ii]);
 			if (!w)
 			{
-				_stprintf_s(x, _T("Addr=0x%04X len=%d Device_ID=0x%04X Chip=%s"), ((p1->addr >> 8) | (p1->addr << 8)) & 0xFFFF, p1->len, id,chip);
+				_stprintf_s(x, _T("Addr=0x%04X len=%d Device_ID=0x%04X Chip=%s"), ((p1->addr >> 8) | (p1->addr << 8)) & 0xFFFF, p1->len, id, chip);
 				error(SEV_MESSAGE, x);
 			}
 			else
 			{
-				_stprintf_s(x, _T("Chip Type: Device_ID=0x%04X Chip=%s"), id,chip);
+				_stprintf_s(x, _T("Chip Type: Device_ID=0x%04X Chip=%s"), id, chip);
 				::SendMessage(hwnd, WM_CHIPTYPE, 0, (LPARAM)x);
 			}
 		}
 		delete p1;
 	}
-	if ((p1 = send_cmd(ERASE_ALL, 0, 10 * 1000, 5)) == NULL) return fatal(_T("There were critical errors, code=0x04"));
-	else delete p1;
-	if (!send_sec(&e0->code_m, 64, 5 * 1000, 5)) return fatal(_T("There were critical errors writing code, code=0x05"));
-	if (!send_sec(&e0->conf_m, 2, 5 * 1000, 5)) return fatal(_T("There were critical errors writing conf, code=0x06"));
-	if (e0->data_m.size != 0) if (!send_sec(&e0->data_m, 2, 5 * 1000, 5)) return fatal(_T("There were critical errors writing data, code=0x07"));
-	if ((p1 = send_cmd(STOP, 0, 10 * 1000, 5)) == NULL) return fatal(_T("There were critical errors, code=0x08"));
-	else delete p1;
+	for (int i = 0; i < 4; i++)
+	{
+		if ((p1 = send_cmd(READ, 0x8000+i, 10 * 1000, 5)) == NULL) return fatal(_T("There were critical errors, code=0x20"));
+		else
+		{
+			uid_l[i] = (p1->data[0] << 8) | p1->data[1];
+			delete p1;
+		}
+	}
 	good = FALSE;
 	thread_send.join();
 	thread_recv.join();
 	port->close();
 	return TRUE;
 }
-
 
 BOOL picprog::fatal(LPCTSTR er)
 {

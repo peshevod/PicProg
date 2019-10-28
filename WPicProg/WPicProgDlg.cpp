@@ -141,10 +141,13 @@ BOOL CWPicProgDlg::OnInitDialog()
 	{
 		readpars();
 		FillList();
-		FillEdit(0);
-		FillEdit(1);
-		FillEdit(2);
-		FillEdit(3);
+		picprog* p = new picprog(lastCOM, files[0], this->m_hWnd);
+		if (!p->readUid(uid_l))
+		{
+			::MessageBox(NULL, _T("Unable to read UID from chip"), _T("Error"), MB_OK | MB_ICONERROR);
+		}
+		delete p;
+		FillEdit();
 	}
 
 	m_Messages.ResetContent();
@@ -213,11 +216,14 @@ void CWPicProgDlg::OnClickedButton1()
 	}
 }
 
-void CWPicProgDlg::FillEdit(int edit_num)
+void CWPicProgDlg::FillEdit()
 {
-//	uid[edit_num].SetLimitText(6);
-	uid[edit_num].SetWindowTextW(uid_str[edit_num]);
-	uid_err[edit_num] = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		_sntprintf_s(uid_str[i], 128, 6, _T("0x%04x"), uid_l[i]);
+		uid[i].SetWindowTextW(uid_str[i]);
+		uid_err[i] = 0;
+	}
 }
 
 int CWPicProgDlg::FillList()
@@ -266,16 +272,6 @@ int CWPicProgDlg::readpars()
 		return -1;
 	}
 	str[_tcslen(str) - 1] = 0;
-	for (int i = 0; i < 4; i++)
-	{
-		if ((str = _fgetts(uid_str[i], 10, f)) == NULL)
-		{
-			fclose(f);
-			return -1;
-		}
-		str[_tcslen(str) - 1] = 0;
-		uid_l[i] = _tcstoul(uid_str[i], &end, 16);
-	}
 	for (int i = 0; i < 10; i++)
 	{
 		if (feof(f))
@@ -316,11 +312,6 @@ int CWPicProgDlg::writepars()
 	if (f == NULL) return -1;
 	if (_fputts(lastCOM, f) < 0) return -1;
 	if (_fputtc(nl, f) < 0) return -1;
-	for (int i = 0; i < 4; i++)
-	{
-		if (_fputts(uid_str[i], f) < 0) return -1;
-		if (_fputtc(nl, f) < 0) return -1;
-	}
 	for (int i = 0; i<m_FileName.GetCount();i++)
 	{
 		m_FileName.GetLBText(i, files[i]);
@@ -344,23 +335,11 @@ int CWPicProgDlg::addfile(CString filePath)
 }
 
 
-
-//void CWPicProgDlg::OnEditchangeCombo1()
-//{
-//	// TODO: Add your control notification handler code here
-//}
-
-
 void CWPicProgDlg::OnSetfocusCombo1()
 {
 	FillList();
 }
 
-
-//void CWPicProgDlg::OnSelendokCombo1()
-//{
-//	// TODO: Add your control notification handler code here
-//}
 
 
 void CWPicProgDlg::OnDropdownCombo1()
@@ -451,26 +430,20 @@ void CWPicProgDlg::OnClickedButton2()
 		::MessageBox(NULL, _T("Wrong User ID parameters format"), _T("Error"), MB_OK | MB_ICONERROR);
 		return;
 	}
-	else
-	{
-		CString s;
-		uid[0].GetWindowTextW(s);
-		_tcscpy_s(uid_str[0], s);
-		uid[1].GetWindowTextW(s);
-		_tcscpy_s(uid_str[1], s);
-		uid[2].GetWindowTextW(s);
-		_tcscpy_s(uid_str[2], s);
-		uid[3].GetWindowTextW(s);
-		_tcscpy_s(uid_str[3], s);
-	}
 	m_Messages.ResetContent();
 	m_Messages.RedrawWindow();
 	picprog* p=new picprog(lastCOM, files[0], this->m_hWnd);
+	p->FillUidSec(uid_l);
 	if (p->proc())
 	{
 		::MessageBox(NULL, _T("Success"), _T("End of program"), MB_OK | MB_ICONINFORMATION);
 	}
+	if (!p->readUid(uid_l))
+	{
+		::MessageBox(NULL, _T("Unable to read UID from chip"), _T("Error"), MB_OK | MB_ICONERROR);
+	}
 	delete p;
+	FillEdit();
 }
 
 

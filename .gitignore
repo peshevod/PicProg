@@ -4,9 +4,9 @@
 # exclude patterns (uncomment them if you want to use them):
 # *.[oa]
 # *~
-*.sln
+#*.sln
 *.hint
-*.vcxproj*
+#*.vcxproj*
 *.aps
 .vs/
 picprog/Include/elfio/

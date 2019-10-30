@@ -100,19 +100,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Microchip\picprog\WPicProg\Include;D:\Microchip\picprog\picprog\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\WPicProg\Include;$(ProjectDir)Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Microchip\picprog\WPicProg\Include;D:\Microchip\picprog\picprog\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\WPicProg\Include;$(ProjectDir)Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\Microchip\picprog\WPicProg\Include;D:\Microchip\picprog\picprog\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\WPicProg\Include;$(ProjectDir)Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\Microchip\picprog\WPicProg\Include;D:\Microchip\picprog\picprog\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\WPicProg\Include;$(ProjectDir)Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

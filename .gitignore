@@ -16,13 +16,12 @@ x64/
 picprog4/MDK-ARM/
 *.mxproject
 #*.ioc
-#picprog4/.settings/
+picprog4/.settings/
 picprog4/Debug/
 picprog4/Release/
 *.cproject
 !picprog4/.cproject
 *.mxproject
-!picprog4/.mxproject
 *.project
 !picprog4/.project
 *.ld

@@ -256,6 +256,8 @@ BOOL picprog::readUid(unsigned long* uid_l)
 			delete p1;
 		}
 	}
+	if ((p1 = send_cmd(STOP, 0, 10 * 1000, 5)) == NULL) return fatal(_T("There were critical errors, code=0x21"));
+	else delete p1;
 	good = FALSE;
 	thread_send.join();
 	thread_recv.join();
